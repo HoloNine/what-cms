@@ -8,8 +8,7 @@ import csv
 import argparse
 import time
 import random
-import requests
-from urllib.parse import urlparse
+from curl_cffi import requests
 
 
 def extract_domain_from_email(email: str) -> str | None:
@@ -50,31 +49,14 @@ def read_csv_with_rows(filepath: str) -> tuple[list[str], list[list[str]], int]:
     return header, rows, email_col
 
 
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+# Browser impersonation options for curl_cffi
+BROWSER_IMPERSONATES = [
+    "chrome131",
+    "chrome124",
+    "chrome123",
+    "safari184",
+    "safari180",
 ]
-
-
-def get_headers() -> dict:
-    """Get realistic browser headers to avoid 403 errors."""
-    return {
-        'User-Agent': random.choice(USER_AGENTS),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-    }
 
 
 def check_hubspot(domain: str, timeout: int = 10, verbose: bool = False) -> tuple[str, str]:
@@ -90,18 +72,18 @@ def check_hubspot(domain: str, timeout: int = 10, verbose: bool = False) -> tupl
         f'http://www.{domain}'
     ]
 
-    session = requests.Session()
     last_error = None
+    impersonate = random.choice(BROWSER_IMPERSONATES)
 
     for url in urls_to_try:
         try:
             if verbose:
-                print(f"  Checking {url}...")
+                print(f"  Checking {url} (as {impersonate})...")
 
-            response = session.get(
+            response = requests.get(
                 url,
                 timeout=timeout,
-                headers=get_headers(),
+                impersonate=impersonate,
                 allow_redirects=True
             )
 
@@ -187,22 +169,25 @@ def main():
     print(f"Scanning {len(domains_to_scan)} unique domains...")
 
     hubspot_count = 0
-    for i, domain in enumerate(domains_to_scan, 1):
-        print(f"[{i}/{len(domains_to_scan)}] Scanning {domain}...", end=' ')
+    try:
+        for i, domain in enumerate(domains_to_scan, 1):
+            print(f"[{i}/{len(domains_to_scan)}] Scanning {domain}...", end=' ')
 
-        scanned_url, hubspot_status = check_hubspot(domain, timeout=args.timeout, verbose=args.verbose)
-        domain_results[domain] = (scanned_url, hubspot_status)
+            scanned_url, hubspot_status = check_hubspot(domain, timeout=args.timeout, verbose=args.verbose)
+            domain_results[domain] = (scanned_url, hubspot_status)
 
-        if hubspot_status == 'Yes':
-            hubspot_count += 1
-            print("✓ HubSpot detected")
-        elif hubspot_status.startswith('Error'):
-            print(f"✗ {hubspot_status}")
-        else:
-            print("- No HubSpot")
+            if hubspot_status == 'Yes':
+                hubspot_count += 1
+                print("✓ HubSpot detected")
+            elif hubspot_status.startswith('Error'):
+                print(f"✗ {hubspot_status}")
+            else:
+                print("- No HubSpot")
 
-        if i < len(domains_to_scan):
-            time.sleep(args.delay)
+            if i < len(domains_to_scan):
+                time.sleep(args.delay)
+    except KeyboardInterrupt:
+        print("\n\n⚠ Scan interrupted by user. Saving partial results...")
 
     # Write output with all original columns plus the two new ones
     print(f"\nWriting results to {args.output_csv}...")
@@ -227,7 +212,8 @@ def main():
                     # No valid domain extracted, include row with empty values if --all
                     writer.writerow(row + ['', ''])
 
-    print(f"\nDone! Found HubSpot on {hubspot_count}/{len(domains_to_scan)} domains")
+    scanned_count = len(domain_results)
+    print(f"\nDone! Scanned {scanned_count}/{len(domains_to_scan)} domains, found HubSpot on {hubspot_count}")
     if not args.all:
         print("Output contains only rows with HubSpot detected")
 
