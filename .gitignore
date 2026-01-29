@@ -5,3 +5,25 @@ CLAUDE.md
 # Venv
 .venv/
 venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# CSV files  
+*.csv
+!example.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
