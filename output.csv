@@ -1,6 +1,12 @@
-domain,has_hubspot,url,error
-casme.com,True,https://casme.com/,
-impulsedecisions.com,True,https://impulsedecisions.com/,
-jadu.net,True,https://www.jadu.net:443/,
-senceive.com,True,https://www.senceive.com/,
-theperformancepractice.co.uk,True,https://theperformancepractice.co.uk/,
+Email,First Name,Last Name,scanned_url,hubspot_status
+heather.edgar@secaretrade.com,Heather,Edgar,https://www.secaretrade.com/,Yes
+amelia.julio@partnersand.com,Amelia,Julio,https://www.partnersand.com/,Yes
+tom.whittaker@mercerhole.co.uk,Tom,Whittaker,https://www.mercerhole.co.uk/,Yes
+daniel.moreno@triario.com,Daniel,Moreno,https://www.triario.co/,Yes
+sbrightwell@senceive.com,Simon,Brightwell,https://www.senceive.com/,Yes
+david.darton@casme.com,david,darton,https://casme.com/,Yes
+ann@theperformancepractice.co.uk,Ann,Todd,https://theperformancepractice.co.uk/,Yes
+abby.shillaker@jadu.net,Abby,Shillaker,https://www.jadu.net:443/,Yes
+jess.maberly@mercerhole.co.uk,Jessica,Maberly,https://www.mercerhole.co.uk/,Yes
+elenajackson@tropicalmarinecentre.co.uk,Elena,Jackson,https://tropicalmarinecentre.com/uk/,Yes
+e.tree@impulsedecisions.com,Emily,Tree,https://impulsedecisions.com/,Yes
