@@ -7,7 +7,7 @@ Scans websites from email domains to detect HubSpot usage.
 import csv
 import argparse
 import time
-import re
+import random
 import requests
 from urllib.parse import urlparse
 
@@ -59,6 +59,33 @@ def get_unique_domains(emails: list[str]) -> list[str]:
     return sorted(domains)
 
 
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+]
+
+
+def get_headers() -> dict:
+    """Get realistic browser headers to avoid 403 errors."""
+    return {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
+    }
+
+
 def check_hubspot(domain: str, timeout: int = 10, verbose: bool = False) -> dict:
     """
     Check if a domain's homepage contains HubSpot references.
@@ -71,22 +98,34 @@ def check_hubspot(domain: str, timeout: int = 10, verbose: bool = False) -> dict
         'error': ''
     }
 
-    # Try HTTPS first, then HTTP
-    urls_to_try = [f'https://{domain}', f'http://{domain}']
+    # Try HTTPS first, then HTTP, also try with www prefix
+    urls_to_try = [
+        f'https://{domain}',
+        f'https://www.{domain}',
+        f'http://{domain}',
+        f'http://www.{domain}'
+    ]
+
+    session = requests.Session()
+    last_error = None
 
     for url in urls_to_try:
         try:
             if verbose:
                 print(f"  Checking {url}...")
 
-            response = requests.get(
+            response = session.get(
                 url,
                 timeout=timeout,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                },
+                headers=get_headers(),
                 allow_redirects=True
             )
+
+            # For 403, try next URL variant
+            if response.status_code == 403:
+                last_error = '403 Forbidden'
+                continue
+
             response.raise_for_status()
 
             html = response.text.lower()
@@ -110,18 +149,19 @@ def check_hubspot(domain: str, timeout: int = 10, verbose: bool = False) -> dict
             return result
 
         except requests.exceptions.SSLError:
-            if url.startswith('https'):
-                continue  # Try HTTP
-            result['error'] = 'SSL Error'
+            last_error = 'SSL Error'
+            continue
         except requests.exceptions.ConnectionError:
-            if url.startswith('https'):
-                continue  # Try HTTP
-            result['error'] = 'Connection Error'
+            last_error = 'Connection Error'
+            continue
         except requests.exceptions.Timeout:
-            result['error'] = 'Timeout'
+            last_error = 'Timeout'
+            continue
         except requests.exceptions.RequestException as e:
-            result['error'] = str(e)[:50]
+            last_error = str(e)[:50]
+            continue
 
+    result['error'] = last_error or 'Unknown Error'
     return result
 
 
