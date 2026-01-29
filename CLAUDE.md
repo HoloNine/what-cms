@@ -21,15 +21,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pip install -r requirements.txt
 
 # Run the scanner
-python scan.py input.csv output.csv
+python main.py input.csv output.csv
 
 # Run with verbose output
-python scan.py input.csv output.csv --verbose
+python main.py input.csv output.csv --verbose
+
+# Include all domains in output (not just HubSpot ones)
+python main.py input.csv output.csv --all
+
+# Custom delay and timeout
+python main.py input.csv output.csv --delay 2.0 --timeout 15
 ```
 
 ## Architecture
 
-- `scan.py` - Main entry point and CLI interface
+- `main.py` - Main entry point and CLI interface
 - Uses `requests` for HTTP fetching with appropriate timeout and error handling
 - Uses `csv` module for reading/writing CSV files
 - Domains are deduplicated before scanning to avoid redundant requests
@@ -38,7 +44,7 @@ python scan.py input.csv output.csv --verbose
 
 **Input CSV:** Must have an `email` column (or first column if no header)
 
-**Output CSV:** Contains columns: `domain`, `has_hubspot`, `url`
+**Output CSV:** Contains columns: `domain`, `has_hubspot`, `url`, `error`
 
 ## Key Considerations
 
