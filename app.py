@@ -87,7 +87,7 @@ def check_hubspot(domain: str, timeout: int = 10) -> tuple[str, str]:
             continue
         except requests.exceptions.Timeout:
             last_error = 'Timeout'
-            continue
+            break  # Skip remaining URLs after timeout
         except requests.exceptions.RequestException as e:
             last_error = str(e)[:50]
             continue
@@ -196,7 +196,7 @@ st.markdown("Upload a CSV file with email addresses to scan domains for HubSpot 
 # Sidebar settings
 with st.sidebar:
     st.header("⚙️ Settings")
-    timeout = st.slider("Request timeout (seconds)", 5, 30, 10)
+    timeout = st.slider("Request timeout (seconds)", 3, 15, 5)
     delay = st.slider("Delay between requests (seconds)", 0.5, 5.0, 1.0, 0.5)
     include_all = st.checkbox("Include all rows in output", value=True, 
                               help="If unchecked, only rows with HubSpot detected will be in the output")
