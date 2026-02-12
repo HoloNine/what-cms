@@ -198,7 +198,7 @@ with st.sidebar:
     st.header("⚙️ Settings")
     timeout = st.slider("Request timeout (seconds)", 5, 30, 10)
     delay = st.slider("Delay between requests (seconds)", 0.5, 5.0, 1.0, 0.5)
-    include_all = st.checkbox("Include all rows in output", value=False, 
+    include_all = st.checkbox("Include all rows in output", value=True, 
                               help="If unchecked, only rows with HubSpot detected will be in the output")
     
     st.markdown("---")
